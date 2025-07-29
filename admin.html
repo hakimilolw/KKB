@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KKB Admin Dashboard </title>
+    <title>KKB Admin Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -120,130 +120,312 @@
                 <button id="close-modal-btn" class="text-gray-500 hover:text-gray-800">&times;</button>
             </div>
             <form id="item-form" class="mt-4 space-y-4">
-                 <!-- Form fields similar to the previous admin panel -->
+                <input type="hidden" id="item-id">
+                
+                <div>
+                    <label for="item-name" class="block text-sm font-medium text-gray-700">Item Name</label>
+                    <input type="text" id="item-name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500" required>
+                </div>
+
+                <div>
+                    <label for="item-category" class="block text-sm font-medium text-gray-700">Category</label>
+                    <select id="item-category" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500" required>
+                        <!-- Categories will be populated here -->
+                    </select>
+                </div>
+                
+                 <div>
+                    <label for="item-subcategory" class="block text-sm font-medium text-gray-700">Subcategory (Optional)</label>
+                    <input type="text" id="item-subcategory" placeholder="e.g., KKB'S SIGNATURE" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <div>
+                    <label for="item-type" class="block text-sm font-medium text-gray-700">Item Type</label>
+                    <select id="item-type" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500" required>
+                        <option value="drink">Drink (with sizes)</option>
+                        <option value="hot-drink">Hot Drink (no sizes)</option>
+                        <option value="food">Food Item</option>
+                    </select>
+                </div>
+
+                <div id="base-price-group">
+                    <label for="item-base-price" class="block text-sm font-medium text-gray-700">Base Price (e.g., 12.00)</label>
+                    <input type="number" step="0.01" id="item-base-price" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                
+                <div id="price-display-group" class="hidden">
+                    <label for="item-price-display" class="block text-sm font-medium text-gray-700">Price Display (e.g., RM8.50)</label>
+                    <input type="text" id="item-price-display" placeholder="e.g., RM8.50 or from RM8.50" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <div>
+                    <label for="item-image-url" class="block text-sm font-medium text-gray-700">Image URL</label>
+                    <input type="url" id="item-image-url" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500" required>
+                </div>
+
+                <div class="flex justify-end pt-4 border-t">
+                    <button type="button" id="cancel-btn" class="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 mr-2">Cancel</button>
+                    <button type="submit" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">Save Item</button>
+                </div>
             </form>
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const sidebar = document.getElementById('sidebar');
-            const mobileMenuButton = document.getElementById('mobile-menu-button');
-            const navDashboard = document.getElementById('nav-dashboard');
-            const navMenu = document.getElementById('nav-menu');
-            const dashboardView = document.getElementById('dashboard-view');
-            const menuView = document.getElementById('menu-view');
-            const pageTitle = document.getElementById('page-title');
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, doc, addDoc, setDoc, deleteDoc, writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-            // --- MOBILE MENU TOGGLE ---
-            mobileMenuButton.addEventListener('click', () => {
-                sidebar.classList.toggle('-translate-x-full');
-            });
+        // --- FIREBASE CONFIGURATION ---
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'kkb-app-suite';
 
-            // --- MOCK DATA ---
-            const completedOrders = [
-                // Today's Sales
-                { id: 1, total: 22.50, timestamp: new Date() },
-                { id: 2, total: 18.00, timestamp: new Date(new Date().setHours(new Date().getHours() - 2)) },
-                // Yesterday's Sales
-                { id: 3, total: 35.00, timestamp: new Date(new Date().setDate(new Date().getDate() - 1)) },
-                // Last Week's Sales
-                { id: 4, total: 55.00, timestamp: new Date(new Date().setDate(new Date().getDate() - 5)) },
-                // Last Month's Sales
-                { id: 5, total: 120.00, timestamp: new Date(new Date().setMonth(new Date().getMonth() - 1)) },
-                // Last Year's Sales
-                { id: 6, total: 250.00, timestamp: new Date(new Date().setFullYear(new Date().getFullYear() - 1)) },
-            ];
+        // --- INITIALIZE FIREBASE ---
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        let currentUserId = null;
+        let categoriesCache = [];
 
-            const menuData = {
-                items: [
-                    { id: 'item-1', name: "Spanish Latte", category: "Coffee", priceDisplay: "RM12.00" },
-                    { id: 'item-10', name: "Beefy Tugau", category: "Burgers", priceDisplay: "RM8.50" },
-                ]
-            };
+        // --- DOM ELEMENTS ---
+        const sidebar = document.getElementById('sidebar');
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const navDashboard = document.getElementById('nav-dashboard');
+        const navMenu = document.getElementById('nav-menu');
+        const dashboardView = document.getElementById('dashboard-view');
+        const menuView = document.getElementById('menu-view');
+        const pageTitle = document.getElementById('page-title');
+        const menuTableBody = document.getElementById('menu-table-body');
+        const itemModal = document.getElementById('item-modal');
+        const itemForm = document.getElementById('item-form');
+        const categorySelect = document.getElementById('item-category');
+        const typeSelect = document.getElementById('item-type');
+        const basePriceGroup = document.getElementById('base-price-group');
+        const priceDisplayGroup = document.getElementById('price-display-group');
 
-            // --- NAVIGATION LOGIC ---
-            function showView(view) {
-                dashboardView.classList.add('hidden');
-                menuView.classList.add('hidden');
-                navDashboard.classList.remove('active');
-                navMenu.classList.remove('active');
+        // --- INITIAL DATA FOR SEEDING ---
+        const initialData = {
+            categories: [
+                { id: 'coffee', name: 'Coffee', order: 1 },
+                { id: 'non-coffee', name: 'Non-Coffee', order: 2 },
+                { id: 'burgers', name: 'Burgers', order: 3 },
+                { id: 'snacks', name: 'Snacks', order: 4 },
+                { id: 'waffles', name: 'Waffles', order: 5 },
+                { id: 'croffles', name: 'Croffles', order: 6 },
+                { id: 'breakfast', name: 'Breakfast', order: 7 },
+            ]
+        };
 
-                if (view === 'dashboard') {
-                    dashboardView.classList.remove('hidden');
-                    navDashboard.classList.add('active');
-                    pageTitle.textContent = 'Sales Dashboard';
-                } else if (view === 'menu') {
-                    menuView.classList.remove('hidden');
-                    navMenu.classList.add('active');
-                    pageTitle.textContent = 'Menu Management';
-                }
-                 // Hide sidebar on mobile after navigation
-                if (window.innerWidth < 768) {
-                    sidebar.classList.add('-translate-x-full');
-                }
+        // --- AUTHENTICATION & INITIALIZATION ---
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                currentUserId = user.uid;
+                initializeAppState();
+            } else {
+                signInAnonymously(auth).catch(err => console.error("Anonymous sign-in failed: ", err));
             }
+        });
 
-            navDashboard.addEventListener('click', (e) => { e.preventDefault(); showView('dashboard'); });
-            navMenu.addEventListener('click', (e) => { e.preventDefault(); showView('menu'); });
-
-            // --- DASHBOARD LOGIC ---
-            function calculateSales() {
-                const now = new Date();
-                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                
-                const dayOfWeek = now.getDay();
-                const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // adjust when day is sunday
-                const startOfWeek = new Date(now.setDate(diff));
-                startOfWeek.setHours(0,0,0,0);
-
-                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-                const startOfYear = new Date(now.getFullYear(), 0, 1);
-
-                const salesToday = completedOrders
-                    .filter(o => new Date(o.timestamp) >= todayStart)
-                    .reduce((sum, o) => sum + o.total, 0);
-
-                const salesWeek = completedOrders
-                    .filter(o => new Date(o.timestamp) >= startOfWeek)
-                    .reduce((sum, o) => sum + o.total, 0);
-                
-                const salesMonth = completedOrders
-                    .filter(o => new Date(o.timestamp) >= startOfMonth)
-                    .reduce((sum, o) => sum + o.total, 0);
-
-                const salesYear = completedOrders
-                    .filter(o => new Date(o.timestamp) >= startOfYear)
-                    .reduce((sum, o) => sum + o.total, 0);
-
-                document.getElementById('sales-today').textContent = `RM${salesToday.toFixed(2)}`;
-                document.getElementById('sales-week').textContent = `RM${salesWeek.toFixed(2)}`;
-                document.getElementById('sales-month').textContent = `RM${salesMonth.toFixed(2)}`;
-                document.getElementById('sales-year').textContent = `RM${salesYear.toFixed(2)}`;
-            }
-
-            // --- MENU MANAGEMENT LOGIC ---
-            function renderMenuTable() {
-                const tableBody = document.getElementById('menu-table-body');
-                tableBody.innerHTML = '';
-                menuData.items.forEach(item => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.name}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.category}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.priceDisplay}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button class="text-blue-600 hover:text-blue-900">Edit</button>
-                            <button class="text-red-600 hover:text-red-900 ml-4">Delete</button>
-                        </td>
-                    `;
-                    tableBody.appendChild(row);
+        async function initializeAppState() {
+            if (!currentUserId) return;
+            
+            // Check if categories exist, if not, offer to seed
+            const categoriesCol = collection(db, `artifacts/${appId}/public/data/categories`);
+            const catSnapshot = await getDocs(categoriesCol);
+            if (catSnapshot.empty) {
+                menuTableBody.innerHTML = `<tr><td colspan="4" class="text-center p-6 text-gray-500">
+                    <p class="mb-4">Your menu is empty.</p>
+                    <button id="seed-db-btn" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">
+                        Click Here to Add Initial Categories
+                    </button>
+                </td></tr>`;
+                document.getElementById('seed-db-btn').addEventListener('click', async () => {
+                    const batch = writeBatch(db);
+                    initialData.categories.forEach(cat => {
+                        const docRef = doc(db, `artifacts/${appId}/public/data/categories`, cat.id);
+                        batch.set(docRef, cat);
+                    });
+                    await batch.commit();
+                    alert('Initial categories have been added!');
                 });
             }
 
-            // --- INITIALIZATION ---
+            // Setup listeners
+            setupListeners();
             calculateSales();
-            renderMenuTable();
+        }
+
+        function setupListeners() {
+            // Menu Items Listener
+            const itemsCol = collection(db, `artifacts/${appId}/public/data/items`);
+            onSnapshot(itemsCol, (snapshot) => {
+                const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderMenuTable(items);
+            });
+
+            // Categories Listener
+            const categoriesCol = collection(db, `artifacts/${appId}/public/data/categories`);
+            onSnapshot(categoriesCol, (snapshot) => {
+                categoriesCache = snapshot.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => a.order - b.order);
+                categorySelect.innerHTML = categoriesCache.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            });
+            
+            // Completed Orders Listener for Sales
+            const ordersCol = collection(db, `artifacts/${appId}/public/data/completedOrders`);
+            onSnapshot(ordersCol, (snapshot) => {
+                const completedOrders = snapshot.docs.map(d => d.data());
+                calculateSales(completedOrders);
+            });
+        }
+
+        // --- UI NAVIGATION ---
+        mobileMenuButton.addEventListener('click', () => sidebar.classList.toggle('-translate-x-full'));
+        navDashboard.addEventListener('click', (e) => { e.preventDefault(); showView('dashboard'); });
+        navMenu.addEventListener('click', (e) => { e.preventDefault(); showView('menu'); });
+
+        function showView(view) {
+            dashboardView.classList.add('hidden');
+            menuView.classList.add('hidden');
+            navDashboard.classList.remove('active');
+            navMenu.classList.remove('active');
+
+            if (view === 'dashboard') {
+                dashboardView.classList.remove('hidden');
+                navDashboard.classList.add('active');
+                pageTitle.textContent = 'Sales Dashboard';
+            } else if (view === 'menu') {
+                menuView.classList.remove('hidden');
+                navMenu.classList.add('active');
+                pageTitle.textContent = 'Menu Management';
+            }
+            if (window.innerWidth < 768) sidebar.classList.add('-translate-x-full');
+        }
+
+        // --- SALES DASHBOARD ---
+        function calculateSales(completedOrders = []) {
+            const now = new Date();
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const dayOfWeek = now.getDay();
+            const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+            const startOfWeek = new Date(now.setDate(diff));
+            startOfWeek.setHours(0,0,0,0);
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+            const salesToday = completedOrders.filter(o => new Date(o.timestamp) >= todayStart).reduce((sum, o) => sum + o.total, 0);
+            const salesWeek = completedOrders.filter(o => new Date(o.timestamp) >= startOfWeek).reduce((sum, o) => sum + o.total, 0);
+            const salesMonth = completedOrders.filter(o => new Date(o.timestamp) >= startOfMonth).reduce((sum, o) => sum + o.total, 0);
+            const salesYear = completedOrders.filter(o => new Date(o.timestamp) >= startOfYear).reduce((sum, o) => sum + o.total, 0);
+
+            document.getElementById('sales-today').textContent = `RM${salesToday.toFixed(2)}`;
+            document.getElementById('sales-week').textContent = `RM${salesWeek.toFixed(2)}`;
+            document.getElementById('sales-month').textContent = `RM${salesMonth.toFixed(2)}`;
+            document.getElementById('sales-year').textContent = `RM${salesYear.toFixed(2)}`;
+        }
+
+        // --- MENU MANAGEMENT ---
+        function renderMenuTable(items) {
+            menuTableBody.innerHTML = '';
+            if (items.length === 0 && categoriesCache.length > 0) {
+                 menuTableBody.innerHTML = `<tr><td colspan="4" class="text-center p-6 text-gray-500">No menu items found. Click 'Add New Menu Item' to begin.</td></tr>`;
+                 return;
+            }
+            items.forEach(item => {
+                const category = categoriesCache.find(c => c.id === item.category);
+                const price = item.type === 'food' ? item.priceDisplay : `RM${item.basePrice.toFixed(2)}`;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${category ? category.name : 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${price}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button class="edit-btn text-blue-600 hover:text-blue-900" data-id="${item.id}">Edit</button>
+                        <button class="delete-btn text-red-600 hover:text-red-900 ml-4" data-id="${item.id}">Delete</button>
+                    </td>
+                `;
+                row.querySelector('.edit-btn').addEventListener('click', () => openItemModal(item));
+                row.querySelector('.delete-btn').addEventListener('click', async () => {
+                    if(confirm(`Are you sure you want to delete ${item.name}?`)) {
+                        await deleteDoc(doc(db, `artifacts/${appId}/public/data/items`, item.id));
+                    }
+                });
+                menuTableBody.appendChild(row);
+            });
+        }
+
+        // --- MODAL & FORM LOGIC ---
+        function openItemModal(item = null) {
+            itemForm.reset();
+            document.getElementById('item-id').value = item ? item.id : '';
+            modalTitle.textContent = item ? 'Edit Item' : 'Add New Item';
+            
+            if(item) {
+                document.getElementById('item-name').value = item.name;
+                document.getElementById('item-category').value = item.category;
+                document.getElementById('item-subcategory').value = item.subcategory || '';
+                document.getElementById('item-type').value = item.type;
+                document.getElementById('item-image-url').value = item.imageUrl;
+                if (item.type === 'food') {
+                    document.getElementById('item-price-display').value = item.priceDisplay;
+                } else {
+                    document.getElementById('item-base-price').value = item.basePrice;
+                }
+            }
+            togglePriceFields();
+            toggleModal(itemModal, true);
+        }
+
+        function togglePriceFields() {
+            const selectedType = typeSelect.value;
+            basePriceGroup.classList.toggle('hidden', selectedType === 'food');
+            priceDisplayGroup.classList.toggle('hidden', selectedType !== 'food');
+        }
+
+        function toggleModal(modal, show) {
+            const content = modal.querySelector('.modal-content');
+            if (show) {
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0');
+                    content.classList.remove('scale-95');
+                }, 10);
+            } else {
+                modal.classList.add('opacity-0');
+                content.classList.add('scale-95');
+                setTimeout(() => modal.classList.add('hidden'), 250);
+            }
+        }
+        
+        document.getElementById('add-item-btn').addEventListener('click', () => openItemModal());
+        document.getElementById('close-modal-btn').addEventListener('click', () => toggleModal(itemModal, false));
+        document.getElementById('cancel-btn').addEventListener('click', () => toggleModal(itemModal, false));
+        typeSelect.addEventListener('change', togglePriceFields);
+
+        itemForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('item-id').value;
+            const itemData = {
+                name: document.getElementById('item-name').value,
+                category: document.getElementById('item-category').value,
+                subcategory: document.getElementById('item-subcategory').value,
+                type: document.getElementById('item-type').value,
+                imageUrl: document.getElementById('item-image-url').value,
+            };
+
+            if (itemData.type === 'food') {
+                itemData.priceDisplay = document.getElementById('item-price-display').value;
+            } else {
+                itemData.basePrice = parseFloat(document.getElementById('item-base-price').value);
+            }
+            
+            const itemsCol = collection(db, `artifacts/${appId}/public/data/items`);
+            if (id) { // Update
+                await setDoc(doc(itemsCol, id), itemData);
+            } else { // Add
+                await addDoc(itemsCol, itemData);
+            }
+            toggleModal(itemModal, false);
         });
     </script>
 </body>
