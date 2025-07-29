@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KKB Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #e5e7eb; font-weight: 600; }
+        .stat-card { transition: transform 0.2s ease; }
+        .stat-card:hover { transform: translateY(-5px); }
+        .modal { transition: opacity 0.25s ease; }
+        .modal-content { transition: transform 0.25s ease; }
+        /* Sidebar transition */
+        #sidebar {
+            transition: transform 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="relative min-h-screen md:flex">
+        <!-- Mobile Menu Button -->
+        <div class="md:hidden flex justify-between items-center bg-white p-4 shadow-md">
+            <h1 class="text-xl font-bold text-gray-800">KKB Admin</h1>
+            <button id="mobile-menu-button" class="text-gray-800 focus:outline-none">
+                <i class="fas fa-bars text-2xl"></i>
+            </button>
+        </div>
+
+        <!-- Sidebar -->
+        <aside id="sidebar" class="bg-white w-64 shadow-md absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 z-30">
+            <div class="p-4 border-b hidden md:block">
+                <h1 class="text-xl font-bold text-gray-800">KKB Admin</h1>
+            </div>
+            <nav class="mt-4">
+                <a href="#" id="nav-dashboard" class="sidebar-link active flex items-center px-4 py-3 text-gray-700 hover:bg-gray-200">
+                    <i class="fas fa-chart-line w-6"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" id="nav-menu" class="sidebar-link flex items-center px-4 py-3 text-gray-700 hover:bg-gray-200">
+                    <i class="fas fa-book-open w-6"></i>
+                    <span>Menu Management</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <header class="bg-white shadow-sm p-4 hidden md:block">
+                <h2 class="text-2xl font-semibold text-gray-800" id="page-title">Sales Dashboard</h2>
+            </header>
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+                
+                <!-- Dashboard View -->
+                <div id="dashboard-view">
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                        <div class="stat-card bg-white p-5 rounded-lg shadow">
+                            <h4 class="text-gray-500">Today's Sales</h4>
+                            <p class="text-3xl font-bold" id="sales-today">RM0.00</p>
+                        </div>
+                        <div class="stat-card bg-white p-5 rounded-lg shadow">
+                            <h4 class="text-gray-500">This Week's Sales</h4>
+                            <p class="text-3xl font-bold" id="sales-week">RM0.00</p>
+                        </div>
+                        <div class="stat-card bg-white p-5 rounded-lg shadow">
+                            <h4 class="text-gray-500">This Month's Sales</h4>
+                            <p class="text-3xl font-bold" id="sales-month">RM0.00</p>
+                        </div>
+                        <div class="stat-card bg-white p-5 rounded-lg shadow">
+                            <h4 class="text-gray-500">This Year's Sales</h4>
+                            <p class="text-3xl font-bold" id="sales-year">RM0.00</p>
+                        </div>
+                    </div>
+                    <!-- Sales Chart Placeholder -->
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="font-semibold mb-4">Sales Overview</h3>
+                        <div class="bg-gray-200 h-64 flex items-center justify-center rounded">
+                            <p class="text-gray-500">Sales chart would be displayed here.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Menu Management View -->
+                <div id="menu-view" class="hidden">
+                    <div class="flex justify-end mb-4">
+                        <button id="add-item-btn" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 shadow-sm">
+                            <i class="fas fa-plus mr-2"></i>Add New Menu Item
+                        </button>
+                    </div>
+                    <div class="bg-white shadow-md rounded-lg overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="menu-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- Menu items will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Add/Edit Item Modal -->
+    <div id="item-modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md p-6 transform scale-95">
+             <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-xl font-semibold text-gray-800" id="modal-title">Add New Item</h3>
+                <button id="close-modal-btn" class="text-gray-500 hover:text-gray-800">&times;</button>
+            </div>
+            <form id="item-form" class="mt-4 space-y-4">
+                 <!-- Form fields similar to the previous admin panel -->
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.getElementById('sidebar');
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const navDashboard = document.getElementById('nav-dashboard');
+            const navMenu = document.getElementById('nav-menu');
+            const dashboardView = document.getElementById('dashboard-view');
+            const menuView = document.getElementById('menu-view');
+            const pageTitle = document.getElementById('page-title');
+
+            // --- MOBILE MENU TOGGLE ---
+            mobileMenuButton.addEventListener('click', () => {
+                sidebar.classList.toggle('-translate-x-full');
+            });
+
+            // --- MOCK DATA ---
+            const completedOrders = [
+                // Today's Sales
+                { id: 1, total: 22.50, timestamp: new Date() },
+                { id: 2, total: 18.00, timestamp: new Date(new Date().setHours(new Date().getHours() - 2)) },
+                // Yesterday's Sales
+                { id: 3, total: 35.00, timestamp: new Date(new Date().setDate(new Date().getDate() - 1)) },
+                // Last Week's Sales
+                { id: 4, total: 55.00, timestamp: new Date(new Date().setDate(new Date().getDate() - 5)) },
+                // Last Month's Sales
+                { id: 5, total: 120.00, timestamp: new Date(new Date().setMonth(new Date().getMonth() - 1)) },
+                // Last Year's Sales
+                { id: 6, total: 250.00, timestamp: new Date(new Date().setFullYear(new Date().getFullYear() - 1)) },
+            ];
+
+            const menuData = {
+                items: [
+                    { id: 'item-1', name: "Spanish Latte", category: "Coffee", priceDisplay: "RM12.00" },
+                    { id: 'item-10', name: "Beefy Tugau", category: "Burgers", priceDisplay: "RM8.50" },
+                ]
+            };
+
+            // --- NAVIGATION LOGIC ---
+            function showView(view) {
+                dashboardView.classList.add('hidden');
+                menuView.classList.add('hidden');
+                navDashboard.classList.remove('active');
+                navMenu.classList.remove('active');
+
+                if (view === 'dashboard') {
+                    dashboardView.classList.remove('hidden');
+                    navDashboard.classList.add('active');
+                    pageTitle.textContent = 'Sales Dashboard';
+                } else if (view === 'menu') {
+                    menuView.classList.remove('hidden');
+                    navMenu.classList.add('active');
+                    pageTitle.textContent = 'Menu Management';
+                }
+                 // Hide sidebar on mobile after navigation
+                if (window.innerWidth < 768) {
+                    sidebar.classList.add('-translate-x-full');
+                }
+            }
+
+            navDashboard.addEventListener('click', (e) => { e.preventDefault(); showView('dashboard'); });
+            navMenu.addEventListener('click', (e) => { e.preventDefault(); showView('menu'); });
+
+            // --- DASHBOARD LOGIC ---
+            function calculateSales() {
+                const now = new Date();
+                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                
+                const dayOfWeek = now.getDay();
+                const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // adjust when day is sunday
+                const startOfWeek = new Date(now.setDate(diff));
+                startOfWeek.setHours(0,0,0,0);
+
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+                const salesToday = completedOrders
+                    .filter(o => new Date(o.timestamp) >= todayStart)
+                    .reduce((sum, o) => sum + o.total, 0);
+
+                const salesWeek = completedOrders
+                    .filter(o => new Date(o.timestamp) >= startOfWeek)
+                    .reduce((sum, o) => sum + o.total, 0);
+                
+                const salesMonth = completedOrders
+                    .filter(o => new Date(o.timestamp) >= startOfMonth)
+                    .reduce((sum, o) => sum + o.total, 0);
+
+                const salesYear = completedOrders
+                    .filter(o => new Date(o.timestamp) >= startOfYear)
+                    .reduce((sum, o) => sum + o.total, 0);
+
+                document.getElementById('sales-today').textContent = `RM${salesToday.toFixed(2)}`;
+                document.getElementById('sales-week').textContent = `RM${salesWeek.toFixed(2)}`;
+                document.getElementById('sales-month').textContent = `RM${salesMonth.toFixed(2)}`;
+                document.getElementById('sales-year').textContent = `RM${salesYear.toFixed(2)}`;
+            }
+
+            // --- MENU MANAGEMENT LOGIC ---
+            function renderMenuTable() {
+                const tableBody = document.getElementById('menu-table-body');
+                tableBody.innerHTML = '';
+                menuData.items.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.category}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.priceDisplay}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button class="text-blue-600 hover:text-blue-900">Edit</button>
+                            <button class="text-red-600 hover:text-red-900 ml-4">Delete</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+
+            // --- INITIALIZATION ---
+            calculateSales();
+            renderMenuTable();
+        });
+    </script>
+</body>
+</html>
