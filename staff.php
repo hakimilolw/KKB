@@ -16,11 +16,6 @@
         .modal-content { transition: transform 0.25s ease; }
         .color-swatch { width: 40px; height: 40px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: border-color 0.2s ease; }
         .color-swatch.selected { border-color: #3b82f6; }
-        .order-card-new { animation: flash-green 1s ease-out; }
-        @keyframes flash-green {
-            0% { background-color: #d1fae5; }
-            100% { background-color: #f9fafb; } /* Tailwind gray-50 */
-        }
     </style>
 </head>
 <body class="bg-gray-200 h-screen flex flex-col">
@@ -111,42 +106,40 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentItem = {};
     let posTheme = { bg: 'bg-white', text: 'text-gray-800' };
     let lastKnownOrderIds = new Set();
-    let audioCtx; // To be initialized on first user interaction
+    let audioCtx;
 
     // --- INITIALIZATION ---
     async function initializePOS() {
         loadThemeSettings();
-        await Promise.all([fetchCategories(), fetchMenuItems(), fetchOnlineOrders(true)]); // Initial fetch
+        await Promise.all([fetchCategories(), fetchMenuItems(), fetchOnlineOrders(true)]);
         renderCategoryTabs();
         renderMenuGrid();
-        setInterval(fetchOnlineOrders, 5000); // Refresh every 5 seconds
+        setInterval(fetchOnlineOrders, 5000);
         updateTime();
         setInterval(updateTime, 1000);
     }
 
     // --- SOUND ALERT FUNCTION ---
     function playNotificationSound() {
-        if (!audioCtx) return; // Audio context not ready
+        if (!audioCtx) return;
         const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
         oscillator.connect(gainNode);
         gainNode.connect(audioCtx.destination);
         oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A nice, clear beep (A5 note)
+        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
         gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
         oscillator.start(audioCtx.currentTime);
         oscillator.stop(audioCtx.currentTime + 0.5);
     }
     
-    // Initialize Audio Context on first user interaction to comply with browser policies
     function initAudio() {
         if (!audioCtx) {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
     }
     document.body.addEventListener('click', initAudio, { once: true });
-
 
     // --- THEME & SETTINGS FUNCTIONS ---
     function loadThemeSettings() {
@@ -183,13 +176,12 @@ document.addEventListener('DOMContentLoaded', () => {
             menuItemsCache = await response.json();
         } catch (error) { console.error("Error fetching menu items:", error); }
     }
-
+    
     async function fetchOnlineOrders(isInitialLoad = false) {
         try {
             const response = await fetch('api/menu.php?action=get-online-orders');
             const onlineOrders = await response.json();
             
-            // Check for new orders
             const incomingOrderIds = new Set(onlineOrders.map(o => o.id));
             if (!isInitialLoad && incomingOrderIds.size > lastKnownOrderIds.size) {
                 const newOrderFound = [...incomingOrderIds].some(id => !lastKnownOrderIds.has(id));
@@ -234,7 +226,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         ordersQueueContainer.innerHTML = orders.map(order => `
             <div class="bg-gray-100 p-3 rounded-lg flex justify-between items-center shadow-sm">
-                <div><p class="font-bold">Order #${order.id} (Online)</p><p class="text-sm text-gray-600">${order.items_summary || 'No items summary'}</p></div>
+                <div>
+                    <p class="font-bold">Order #${order.id} - ${order.customer_name || 'Online Customer'}</p>
+                    <p class="text-sm text-gray-600">${order.items_summary || 'No items summary'}</p>
+                </div>
                 <button class="complete-order-btn bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-bold" data-id="${order.id}">Done</button>
             </div>`).join('');
     }
@@ -261,11 +256,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         historyContent.innerHTML = `
             <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Items</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th></tr></thead>
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Items</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                    </tr>
+                </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    ${orders.map(order => `<tr><td class="px-6 py-4 whitespace-nowrap text-sm font-medium">#${order.id}</td><td class="px-6 py-4 whitespace-nowrap text-sm">${order.order_type}</td><td class="px-6 py-4 whitespace-nowrap text-sm">${order.items_summary}</td><td class="px-6 py-4 whitespace-nowrap text-sm font-bold">RM${parseFloat(order.total_amount).toFixed(2)}</td><td class="px-6 py-4 whitespace-nowrap text-sm">${new Date(order.created_at).toLocaleString()}</td></tr>`).join('')}
+                    ${orders.map(order => `
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">#${order.id}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">${order.customer_name || order.order_type}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">${order.items_summary}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold">RM${parseFloat(order.total_amount).toFixed(2)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">${new Date(order.created_at).toLocaleString()}</td>
+                        </tr>
+                    `).join('')}
                 </tbody>
-            </table>`;
+            </table>
+        `;
     }
 
     // --- MODAL & ORDER FUNCTIONS ---
